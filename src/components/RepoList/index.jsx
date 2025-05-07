@@ -1,40 +1,53 @@
 import { useState, useEffect } from "react";
 import styles from "./ReposList.module.css";
+
 const ReposList = ({ nomeUsuario }) => {
   const [repos, setRepos] = useState([]);
   const [estaCarregando, setEstaCarregando] = useState(true);
+  const [erro, setErro] = useState(false);
+
   useEffect(() => {
+    setErro(false);
     setEstaCarregando(true);
+
     fetch(`https://api.github.com/users/${nomeUsuario}/repos`)
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error("Usuário não encontrado");
+        return res.json();
+      })
       .then((resJson) => {
-        setTimeout(() => {
-          setEstaCarregando(false);
-          setRepos(resJson);
-        }, 2000);
+        setRepos(resJson);
+        setEstaCarregando(false);
+      })
+      .catch((e) => {
+        setErro(true);
+        setEstaCarregando(false);
       });
   }, [nomeUsuario]);
+
   return (
     <div className="container">
-      {estaCarregando ? (
-        <h1>Carregando ...</h1>
-      ) : (
+      {estaCarregando && <h2>Carregando...</h2>}
+
+      {!estaCarregando && erro && <h2>Usuário não encontrado</h2>}
+
+      {!estaCarregando && !erro && (
         <ul className={styles.list}>
-          {repos.map(({ id, name, language, html_url }) => (
-            <li className={styles.listItem} key={id}>
-              <div className={styles.listItemName}>
-                <b>Nome: </b> {name}
-              </div>
-              <div className={styles.listItemLanguage}>
-                <b>Linguagem: </b> {language}
-              </div>
+          {repos.map((repo) => (
+            <li key={repo.id} className={styles.listItem}>
+              <h3 className={styles.listItemName}>
+                <b>Nome:</b> {repo.name}
+              </h3>
+              <p className={styles.listItemLanguage}>
+                <b>Idioma:</b> {repo.language}
+              </p>
               <a
                 className={styles.listItemLink}
+                href={repo.html_url}
                 target="_blank"
-                href={html_url}
+                rel="noopener noreferrer"
               >
-                {" "}
-                Visitar no github
+                Acessar
               </a>
             </li>
           ))}
@@ -43,4 +56,5 @@ const ReposList = ({ nomeUsuario }) => {
     </div>
   );
 };
+
 export default ReposList;
